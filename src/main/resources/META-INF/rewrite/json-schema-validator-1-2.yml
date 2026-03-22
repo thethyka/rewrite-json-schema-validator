@@ -1,0 +1,172 @@
+#
+# Copyright 2026 the original author or authors.
+# <p>
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# <p>
+# https://www.apache.org/licenses/LICENSE-2.0
+# <p>
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+########################################################################################################################
+# json-schema-validator migration from 1.5.x to 2.0.0
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.jsonschemavalidator.UpgradeJsonSchemaValidator_1_2
+displayName: Migrates from json-schema-validator 1.5.x to 2.0.0
+description: >-
+  Migrate applications from networknt json-schema-validator 1.5.x to 2.0.0. This recipe handles
+  class renames (e.g., `JsonSchema` -> `Schema`, `JsonSchemaFactory` -> `SchemaRegistry`),
+  package relocations into sub-packages, configuration migration from `SchemaValidatorsConfig`
+  to `SchemaRegistryConfig`/`WalkConfig`/`ExecutionConfig`, error type changes
+  (`ValidationMessage` -> `Error`), and removal of deprecated methods.
+tags:
+  - json-schema-validator
+recipeList:
+  # Dependency upgrade
+  - org.openrewrite.java.jsonschemavalidator.UpgradeJsonSchemaValidator_1_2_Dependencies
+  # Behavioral migrations must run before type renames so their UsesType preconditions match old names
+  # Configuration migration (SchemaValidatorsConfig -> SchemaRegistryConfig/WalkConfig/ExecutionConfig)
+  - org.openrewrite.java.jsonschemavalidator.MigrateSchemaValidatorsConfig
+  # Replace Set<ValidationMessage> with List<Error>
+  - org.openrewrite.java.jsonschemavalidator.MigrateValidationResultTypes
+  # Remove error code usages (ErrorMessageType removed, no replacement)
+  - org.openrewrite.java.jsonschemavalidator.RemoveErrorCodeUsages
+  # Method renames must run before type renames (pattern targets old type name JsonSchemaFactory)
+  - org.openrewrite.java.jsonschemavalidator.UpgradeJsonSchemaValidator_1_2_MethodChanges
+  # Type renames last — rewrites all old class names/packages to new ones
+  - org.openrewrite.java.jsonschemavalidator.UpgradeJsonSchemaValidator_1_2_TypeChanges
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.jsonschemavalidator.UpgradeJsonSchemaValidator_1_2_Dependencies
+displayName: Upgrade json-schema-validator 1.5.x dependencies to 2.0.0
+description: Upgrade networknt json-schema-validator Maven/Gradle dependencies from 1.5.x to 2.0.0.
+tags:
+  - json-schema-validator
+recipeList:
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: com.networknt
+      artifactId: json-schema-validator
+      newVersion: "2.0.x"
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.jsonschemavalidator.UpgradeJsonSchemaValidator_1_2_TypeChanges
+displayName: Update json-schema-validator 1.5.x types to 2.0.0
+description: >-
+  Update json-schema-validator type names including major class renames and relocations
+  into sub-packages (e.g., `JsonSchema` -> `Schema`, `JsonSchemaFactory` -> `SchemaRegistry`,
+  `ValidatorTypeCode` -> `keyword.KeywordType`).
+tags:
+  - json-schema-validator
+recipeList:
+  # Core class renames (same package)
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.networknt.schema.JsonSchema
+      newFullyQualifiedTypeName: com.networknt.schema.Schema
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.networknt.schema.JsonSchemaFactory
+      newFullyQualifiedTypeName: com.networknt.schema.SchemaRegistry
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.networknt.schema.ValidationMessage
+      newFullyQualifiedTypeName: com.networknt.schema.Error
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.networknt.schema.JsonSchemaValidator
+      newFullyQualifiedTypeName: com.networknt.schema.Validator
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.networknt.schema.ValidationResult
+      newFullyQualifiedTypeName: com.networknt.schema.Result
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.networknt.schema.JsonNodePath
+      newFullyQualifiedTypeName: com.networknt.schema.NodePath
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.networknt.schema.JsonSchemaException
+      newFullyQualifiedTypeName: com.networknt.schema.SchemaException
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.networknt.schema.JsonSchemaIdValidator
+      newFullyQualifiedTypeName: com.networknt.schema.SchemaIdValidator
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.networknt.schema.JsonSchemaRef
+      newFullyQualifiedTypeName: com.networknt.schema.SchemaRef
+
+  # Classes relocated to sub-packages
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.networknt.schema.JsonMetaSchema
+      newFullyQualifiedTypeName: com.networknt.schema.dialect.Dialect
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.networknt.schema.JsonMetaSchemaFactory
+      newFullyQualifiedTypeName: com.networknt.schema.dialect.DialectRegistry
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.networknt.schema.SchemaId
+      newFullyQualifiedTypeName: com.networknt.schema.dialect.DialectId
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.networknt.schema.ValidatorTypeCode
+      newFullyQualifiedTypeName: com.networknt.schema.keyword.KeywordType
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.networknt.schema.JsonValidator
+      newFullyQualifiedTypeName: com.networknt.schema.keyword.KeywordValidator
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.networknt.schema.VocabularyFactory
+      newFullyQualifiedTypeName: com.networknt.schema.vocabulary.VocabularyRegistry
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.networknt.schema.VersionCode
+      newFullyQualifiedTypeName: com.networknt.schema.SpecificationVersionRange
+
+  # SpecVersion.VersionFlag -> SpecificationVersion (flatten hierarchy)
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.networknt.schema.SpecVersion.VersionFlag
+      newFullyQualifiedTypeName: com.networknt.schema.SpecificationVersion
+
+  # Configuration class renames
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.networknt.schema.SchemaValidatorsConfig
+      newFullyQualifiedTypeName: com.networknt.schema.SchemaRegistryConfig
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.networknt.schema.ValidationContext
+      newFullyQualifiedTypeName: com.networknt.schema.SchemaContext
+
+  # Walk-related renames
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.networknt.schema.walk.JsonSchemaWalker
+      newFullyQualifiedTypeName: com.networknt.schema.walk.Walker
+
+  # Serialization/annotation renames
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.networknt.schema.serialization.JsonNodeReader
+      newFullyQualifiedTypeName: com.networknt.schema.serialization.NodeReader
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.networknt.schema.annotation.JsonNodeAnnotation
+      newFullyQualifiedTypeName: com.networknt.schema.annotation.Annotation
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: com.networknt.schema.annotation.JsonNodeAnnotations
+      newFullyQualifiedTypeName: com.networknt.schema.annotation.Annotations
+
+  # Removed type (no replacement)
+  # ErrorMessageType - removed, no direct replacement; handled by RemoveErrorCodeUsages recipe
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.java.jsonschemavalidator.UpgradeJsonSchemaValidator_1_2_MethodChanges
+displayName: Update json-schema-validator 1.5.x methods to 2.0.0 equivalents
+description: >-
+  Rename and update method calls that changed in json-schema-validator 2.0.0. This includes
+  factory method changes on `SchemaRegistry` (formerly `JsonSchemaFactory`).
+tags:
+  - json-schema-validator
+recipeList:
+  # JsonSchemaFactory.getInstance(SpecVersion.VersionFlag) -> SchemaRegistry.withDefaultDialect(SpecificationVersion)
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: com.networknt.schema.JsonSchemaFactory getInstance(..)
+      newMethodName: withDefaultDialect
+  # JsonSchemaFactory.getSchema(..) -> SchemaRegistry.getSchema(..)
+  # (method name stays the same, but signature may differ — handled by type change)
+
+  # ValidationMessage.getMessage() remains, but toString() behavior changed
+  # ValidationMessage.getCode() -> removed, handled by RemoveErrorCodeUsages
