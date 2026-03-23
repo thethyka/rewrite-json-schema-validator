@@ -18,18 +18,24 @@ package org.openrewrite.java.jsonschemavalidator;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.jspecify.annotations.Nullable;
+import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesType;
+import org.openrewrite.java.tree.Comment;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TextComment;
 import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.marker.Markers;
 
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.Collections.singleton;
 
@@ -79,6 +85,21 @@ public class RemoveErrorCodeUsages extends Recipe {
                         JavaType type = vd.getType();
                         if (type != null && (TypeUtils.isOfClassType(type, ERROR_MESSAGE_TYPE) ||
                                 TypeUtils.isOfClassType(type, CUSTOM_ERROR_MESSAGE_TYPE))) {
+                            // For local variables, check if the variable is referenced elsewhere in the
+                            // enclosing block. If so, we can't safely remove the declaration — add a TODO
+                            // comment instead to guide manual migration.
+                            boolean isLocalVar = getCursor().firstEnclosing(J.MethodDeclaration.class) != null;
+                            if (isLocalVar) {
+                                J.Block enclosingBlock = getCursor().firstEnclosing(J.Block.class);
+                                if (enclosingBlock != null) {
+                                    for (J.VariableDeclarations.NamedVariable variable : vd.getVariables()) {
+                                        if (isReferencedInBlock(enclosingBlock, variable.getSimpleName(),
+                                                getCursor())) {
+                                            return addTodoComment(vd, TODO_TEXT);
+                                        }
+                                    }
+                                }
+                            }
                             maybeRemoveImport(ERROR_MESSAGE_TYPE);
                             maybeRemoveImport(CUSTOM_ERROR_MESSAGE_TYPE);
                             // Remove the variable declaration entirely
@@ -103,5 +124,33 @@ public class RemoveErrorCodeUsages extends Recipe {
                         return mi;
                     }
                 });
+    }
+
+    private static boolean isReferencedInBlock(J.Block block, String varName, Cursor cursor) {
+        AtomicBoolean referenced = new AtomicBoolean(false);
+        new JavaVisitor<AtomicBoolean>() {
+            @Override
+            public J visitIdentifier(J.Identifier identifier, AtomicBoolean found) {
+                if (identifier.getSimpleName().equals(varName) &&
+                        !(getCursor().getParentTreeCursor()
+                                .getValue() instanceof J.VariableDeclarations.NamedVariable)) {
+                    found.set(true);
+                }
+                return super.visitIdentifier(identifier, found);
+            }
+        }.visit(block, referenced, cursor);
+        return referenced.get();
+    }
+
+    private static J.VariableDeclarations addTodoComment(J.VariableDeclarations vd, String todoText) {
+        for (Comment c : vd.getPrefix().getComments()) {
+            if (c instanceof TextComment &&
+                    ((TextComment) c).getText().contains("was removed in json-schema-validator")) {
+                return vd;
+            }
+        }
+        TextComment comment = new TextComment(true, todoText, vd.getPrefix().getWhitespace(), Markers.EMPTY);
+        return vd.withPrefix(vd.getPrefix().withComments(
+                ListUtils.concat(vd.getPrefix().getComments(), comment)));
     }
 }

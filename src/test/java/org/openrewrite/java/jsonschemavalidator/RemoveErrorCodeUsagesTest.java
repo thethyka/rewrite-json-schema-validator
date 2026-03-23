@@ -136,4 +136,36 @@ class RemoveErrorCodeUsagesTest implements RewriteTest {
                                 }
                                 """));
     }
+
+    @Test
+    void addTodoWhenVariableIsReferencedAfterDeclaration() {
+        // If the removed variable is referenced in a subsequent expression,
+        // we can't safely remove the declaration — a TODO comment is added instead.
+        rewriteRun(
+                // language=java
+                java(
+                        """
+                                import com.networknt.schema.CustomErrorMessageType;
+                                import com.networknt.schema.ErrorMessageType;
+
+                                class Test {
+                                    void process() {
+                                        ErrorMessageType type = CustomErrorMessageType.of("custom");
+                                        System.out.println(type.getErrorCode());
+                                    }
+                                }
+                                """,
+                        """
+                                import com.networknt.schema.CustomErrorMessageType;
+                                import com.networknt.schema.ErrorMessageType;
+
+                                class Test {
+                                    void process() {
+                                        /* TODO ErrorMessageType was removed in json-schema-validator 2.0.0. Use message keys (getMessageKey()) to distinguish validation error types. */
+                                        ErrorMessageType type = CustomErrorMessageType.of("custom");
+                                        System.out.println(type.getErrorCode());
+                                    }
+                                }
+                                """));
+    }
 }

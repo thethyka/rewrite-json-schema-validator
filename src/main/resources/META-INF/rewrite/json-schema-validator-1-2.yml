@@ -22,25 +22,25 @@ name: org.openrewrite.java.jsonschemavalidator.UpgradeJsonSchemaValidator_1_2
 displayName: Migrates from json-schema-validator 1.5.x to 2.0.0
 description: >-
   Migrate applications from networknt json-schema-validator 1.5.x to 2.0.0. This recipe handles
-  class renames (e.g., `JsonSchema` -> `Schema`, `JsonSchemaFactory` -> `SchemaRegistry`),
-  package relocations into sub-packages, configuration migration from `SchemaValidatorsConfig`
-  to `SchemaRegistryConfig`/`WalkConfig`/`ExecutionConfig`, error type changes
-  (`ValidationMessage` -> `Error`), and removal of deprecated methods.
+  upgrading the dependency version, removing deleted `SchemaValidatorsConfig` setter methods,
+  migrating `Set<ValidationMessage>` to `List<ValidationMessage>`, removing the deleted
+  `ErrorMessageType` enum and its usages, renaming `JsonSchemaFactory.getInstance(..)` to
+  `withDefaultDialect(..)`, and applying all class renames and package relocations.
 tags:
   - json-schema-validator
 recipeList:
   # Dependency upgrade
   - org.openrewrite.java.jsonschemavalidator.UpgradeJsonSchemaValidator_1_2_Dependencies
   # Behavioral migrations must run before type renames so their UsesType preconditions match old names
-  # Configuration migration (SchemaValidatorsConfig -> SchemaRegistryConfig/WalkConfig/ExecutionConfig)
+  # Remove deleted SchemaValidatorsConfig setter/getter methods
   - org.openrewrite.java.jsonschemavalidator.MigrateSchemaValidatorsConfig
-  # Replace Set<ValidationMessage> with List<Error>
+  # Replace Set<ValidationMessage> with List<ValidationMessage>
   - org.openrewrite.java.jsonschemavalidator.MigrateValidationResultTypes
-  # Remove error code usages (ErrorMessageType removed, no replacement)
+  # Remove ErrorMessageType / CustomErrorMessageType usages (error codes removed in 2.0.0)
   - org.openrewrite.java.jsonschemavalidator.RemoveErrorCodeUsages
-  # Method renames must run before type renames (pattern targets old type name JsonSchemaFactory)
+  # Method renames must run before type renames (matches old type name JsonSchemaFactory)
   - org.openrewrite.java.jsonschemavalidator.UpgradeJsonSchemaValidator_1_2_MethodChanges
-  # Type renames last — rewrites all old class names/packages to new ones
+  # Type renames last — all class renames and package relocations
   - org.openrewrite.java.jsonschemavalidator.UpgradeJsonSchemaValidator_1_2_TypeChanges
 
 ---
@@ -165,8 +165,3 @@ recipeList:
   - org.openrewrite.java.ChangeMethodName:
       methodPattern: com.networknt.schema.JsonSchemaFactory getInstance(..)
       newMethodName: withDefaultDialect
-  # JsonSchemaFactory.getSchema(..) -> SchemaRegistry.getSchema(..)
-  # (method name stays the same, but signature may differ — handled by type change)
-
-  # ValidationMessage.getMessage() remains, but toString() behavior changed
-  # ValidationMessage.getCode() -> removed, handled by RemoveErrorCodeUsages

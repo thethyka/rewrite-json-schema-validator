@@ -15,12 +15,12 @@ Currently, it provides recipes to migrate from **1.5.x to 2.0.0**, handling the 
 ### Recipes
 
 - **`org.openrewrite.java.jsonschemavalidator.UpgradeJsonSchemaValidator_1_2`** — Migrates from json-schema-validator 1.5.x to 2.0.0. This includes:
-  - Migrating `SchemaValidatorsConfig` from setter-based construction to the builder pattern
-  - Updating `ValidationMessage` API (`getCode()` → `getType()`, `getMessage()` → `getMessageWithArgs()`)
-  - Removing the deleted `ErrorCode` enum and its usages
-  - Updating `OutputFormat` enum values (`HIERARCHICAL` → `DEFAULT`, `OPENAPI_3` → `DEFAULT`)
-  - Renaming changed method signatures on `JsonSchema` and related types
-  - Updating dependency version in Maven and Gradle build files
+  - Upgrading the dependency version in Maven and Gradle build files
+  - All class renames and package relocations (e.g., `JsonSchema` → `Schema`, `JsonSchemaFactory` → `SchemaRegistry`, `ValidationMessage` → `Error`)
+  - Removing deleted `SchemaValidatorsConfig` setter/getter methods (discriminators, javaSemantics, nullable, preloadDepth)
+  - Migrating `Set<ValidationMessage>` to `List<ValidationMessage>` in variable declarations and method signatures
+  - Removing `ErrorMessageType` / `CustomErrorMessageType` usages (error code concept removed)
+  - Renaming `JsonSchemaFactory.getInstance(..)` to `withDefaultDialect(..)`
 
 ## Contributing
 

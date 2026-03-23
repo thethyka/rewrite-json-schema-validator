@@ -72,21 +72,35 @@ public class MigrateValidationResultTypes extends Recipe {
                         setToListChanged = false;
                         J.CompilationUnit result = super.visitCompilationUnit(cu, ctx);
                         if (setToListChanged) {
-                            // Rename Set import to List in-place to preserve import layout
-                            result = result.getPadding().withImports(
-                                    ListUtils.map(result.getPadding().getImports(), padded -> {
-                                        J.Import imp = padded.getElement();
-                                        if (TypeUtils.isOfClassType(imp.getQualid().getType(), SET_TYPE)) {
-                                            JavaType.ShallowClass listType = JavaType.ShallowClass.build(LIST_TYPE);
-                                            J.FieldAccess newQualid = imp.getQualid()
-                                                    .withName(imp.getQualid().getName()
-                                                            .withSimpleName("List")
-                                                            .withType(listType))
-                                                    .withType(listType);
-                                            return padded.withElement(imp.withQualid(newQualid));
-                                        }
-                                        return padded;
-                                    }));
+                            boolean alreadyHasListImport = result.getImports().stream()
+                                    .anyMatch(imp -> TypeUtils.isOfClassType(imp.getQualid().getType(), LIST_TYPE));
+                            if (alreadyHasListImport) {
+                                // List is already imported — just remove the Set import
+                                result = result.getPadding().withImports(
+                                        ListUtils.map(result.getPadding().getImports(), padded -> {
+                                            J.Import imp = padded.getElement();
+                                            if (TypeUtils.isOfClassType(imp.getQualid().getType(), SET_TYPE)) {
+                                                return null;
+                                            }
+                                            return padded;
+                                        }));
+                            } else {
+                                // Rename Set import to List in-place to preserve import layout
+                                result = result.getPadding().withImports(
+                                        ListUtils.map(result.getPadding().getImports(), padded -> {
+                                            J.Import imp = padded.getElement();
+                                            if (TypeUtils.isOfClassType(imp.getQualid().getType(), SET_TYPE)) {
+                                                JavaType.ShallowClass listType = JavaType.ShallowClass.build(LIST_TYPE);
+                                                J.FieldAccess newQualid = imp.getQualid()
+                                                        .withName(imp.getQualid().getName()
+                                                                .withSimpleName("List")
+                                                                .withType(listType))
+                                                        .withType(listType);
+                                                return padded.withElement(imp.withQualid(newQualid));
+                                            }
+                                            return padded;
+                                        }));
+                            }
                         }
                         return result;
                     }

@@ -43,8 +43,6 @@ class MigrateValidationResultTypesTest implements RewriteTest {
     @DocumentExample
     @Test
     void migrateSetValidationMessageToListError() {
-        // TODO: Enable once implementation is complete and parser classpath is
-        // available
         rewriteRun(
                 // language=java
                 java(

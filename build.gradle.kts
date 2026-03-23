@@ -10,8 +10,6 @@ dependencies {
     implementation(platform("org.openrewrite:rewrite-bom:$rewriteVersion"))
 
     implementation("org.openrewrite:rewrite-java")
-    implementation("org.openrewrite:rewrite-properties")
-    implementation("org.openrewrite:rewrite-yaml")
     implementation("org.openrewrite.recipe:rewrite-java-dependencies:$rewriteVersion")
 
     annotationProcessor("org.openrewrite:rewrite-templating:$rewriteVersion")

@@ -36,32 +36,35 @@ import java.util.Set;
 import static java.util.Collections.singleton;
 
 /**
- * Migrates usages of {@code SchemaValidatorsConfig} to the appropriate
- * replacement class.
+ * Removes usages of deleted {@code SchemaValidatorsConfig} methods.
  * <p>
- * In json-schema-validator 2.0.0, {@code SchemaValidatorsConfig} was split
- * into:
+ * In json-schema-validator 2.0.0, {@code SchemaValidatorsConfig} was renamed
+ * to {@code SchemaRegistryConfig} and several methods were removed entirely:
  * <ul>
- * <li>{@code SchemaRegistryConfig} — for registry-level settings (cacheRefs,
- * failFast, locale, etc.)</li>
- * <li>{@code WalkConfig} — for walk-related settings (applyDefaultsStrategy,
- * item/keyword/property walk listeners)</li>
- * <li>{@code ExecutionConfig} — for per-execution settings (readOnly,
- * writeOnly)</li>
+ * <li>{@code setOpenAPI3StyleDiscriminators} /
+ * {@code isOpenAPI3StyleDiscriminators} — dialect must contain discriminator
+ * keyword</li>
+ * <li>{@code setDiscriminatorKeywordEnabled} /
+ * {@code isDiscriminatorKeywordEnabled} — same</li>
+ * <li>{@code setJavaSemantics} / {@code isJavaSemantics} — use
+ * {@code losslessNarrowing} instead</li>
+ * <li>{@code setHandleNullableField} / {@code isHandleNullableField} /
+ * {@code isNullableKeywordEnabled} — dialect must contain nullable keyword</li>
+ * <li>{@code setPreloadJsonSchemaRefMaxNestingDepth} — no longer needed</li>
  * </ul>
  * <p>
- * This recipe removes calls to removed methods and adds TODO comments for
- * methods that need to move to a different config class.
+ * This recipe removes setter call sites and adds TODO comments to getter call
+ * sites.
  */
 @Value
 @EqualsAndHashCode(callSuper = false)
 public class MigrateSchemaValidatorsConfig extends Recipe {
 
-    String displayName = "Migrate `SchemaValidatorsConfig` to `SchemaRegistryConfig`/`WalkConfig`/`ExecutionConfig`";
-    String description = "In json-schema-validator 2.0.0, `SchemaValidatorsConfig` was split into " +
-            "`SchemaRegistryConfig` (registry-level settings), `WalkConfig` (walk listeners and defaults strategy), " +
-            "and `ExecutionConfig` (per-execution settings like readOnly/writeOnly). " +
-            "This recipe removes calls to deleted methods and flags methods that moved to other config classes.";
+    String displayName = "Remove deleted `SchemaValidatorsConfig` methods";
+    String description = "In json-schema-validator 2.0.0, `SchemaValidatorsConfig` was renamed to " +
+            "`SchemaRegistryConfig` and several setter/getter methods were removed entirely " +
+            "(discriminators, javaSemantics, nullable, preloadDepth). " +
+            "This recipe removes calls to deleted setters and adds TODO comments to deleted getter call sites.";
     Set<String> tags = singleton("json-schema-validator");
 
     private static final String SVC = "com.networknt.schema.SchemaValidatorsConfig";
